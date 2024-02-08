@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "$0 [project_name]"
+    exit 0
+fi
+
+projectDir=$(dirname -- "$( readlink -f -- "$0"; )";)
+
+# install node dependencies
+if [ ! -d "$projectDir/bundler/node_modules" ]; then
+    (cd "$projectDir/bundler"; npm ci)
+fi
+
+# run bundler
+(cd "$projectDir/bundler"; npm run start "$projectDir" "$1")

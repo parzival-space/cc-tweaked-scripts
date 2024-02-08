@@ -1,0 +1,6 @@
+# exlude bundler node_modules
+/bundler/node_modules
+
+# exlude contents of dist
+/dist/*
+!/dist/.gitkeep

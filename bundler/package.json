@@ -1,0 +1,15 @@
+{
+  "name": "bundler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node ."
+  },
+  "author": "parzival-space",
+  "license": "MIT",
+  "dependencies": {
+    "luabundle": "^1.6.0"
+  }
+}

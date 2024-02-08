@@ -1,0 +1,12 @@
+{
+    "force": false,
+    "isolate": false,
+    "luaVersion": "5.3",
+    "metadata": true,
+    "main": "main.lua",
+    "rootModuleName": "__root",
+    "imports": [
+        "?",
+        "?.lua"
+    ]
+}
