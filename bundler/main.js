@@ -29,7 +29,7 @@ const activeProjects = availableProjects.filter(project => (projectFilter.length
 console.log(`Selected ${activeProjects.length} of ${availableProjects.length} available project(s).`);
 
 // start building the projects
-activeProjects.forEach(async (project) => {
+for (let project of activeProjects) {
     const startTime = performance.now();
     printHeader(
         project.name, COLOR.cyan,
@@ -55,7 +55,7 @@ activeProjects.forEach(async (project) => {
             luaVersion: projectSettings.luaVersion,
             metadata: projectSettings.metadata,
             rootModuleName: projectSettings.rootModuleName,
-            paths: projectSettings["imports"],
+            paths: projectSettings["imports"].map(i => `${project.path}/${i}`),
         };
 
         // convert multiple lua files into one
@@ -80,6 +80,10 @@ activeProjects.forEach(async (project) => {
     } catch (e) {
         console.log(`${COLOR.red}${e.message}${COLOR.reset}`)
 
+        if (e.cause) {
+            console.log(`${COLOR.red}Possible cause: ${e.cause}${COLOR.reset}`)
+        }
+
         // report results
         printFooter(
             `BUILD FAILED`, COLOR.red,
@@ -87,4 +91,4 @@ activeProjects.forEach(async (project) => {
             `Finished at:`.padEnd(13) + `${new Date().toISOString()}`
         );
     }
-});
+}
