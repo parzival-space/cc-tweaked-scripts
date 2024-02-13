@@ -1,0 +1,28 @@
+name: Create Release(s)
+on:
+    push:
+        branches:
+            - development
+    workflow_dispatch:
+        
+jobs:
+    bundle:
+        name: Bundle & Release Scripts
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              node-version: 20
+            - name: Run Build Script
+              run: ./bundle
+            - name: Get current date
+              id: date
+              run: echo "::set-output name=date::$(date +'%Y.%m.%d')"
+            - name: Create Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: dist/*.lua
+                  name: Pre-Bundled Scripts ${{ steps.date.outputs.date }}
+                  tag_name: ${{ steps.date.outputs.date }}
+                  generate_release_notes: true
+            

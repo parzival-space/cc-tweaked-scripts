@@ -29,6 +29,7 @@ const activeProjects = availableProjects.filter(project => (projectFilter.length
 console.log(`Selected ${activeProjects.length} of ${availableProjects.length} available project(s).`);
 
 // start building the projects
+let failedBuilds = 0;
 for (let project of activeProjects) {
     const startTime = performance.now();
     printHeader(
@@ -90,5 +91,11 @@ for (let project of activeProjects) {
             `Total time:`.padEnd(13) + `${(performance.now() - startTime).toFixed(3)} s\n` +
             `Finished at:`.padEnd(13) + `${new Date().toISOString()}`
         );
+
+        // increment failed counter
+        failedBuilds++;
     }
 }
+
+if (failedBuilds > 0)
+    process.exit(1); // 1 = some builds failed
