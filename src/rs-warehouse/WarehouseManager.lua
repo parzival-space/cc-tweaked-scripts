@@ -63,40 +63,40 @@ end
 
 -- updates the request list on every connected display.
 function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests, otherRequests)
-    local rowIndex = 3 -- start at row 3 because the first row is the header
+    local rowIndex = 2 -- start at row 2 because the first row is the header
 
     -- builder requests
     if #builderRequests > 0 then
+        rowIndex = rowIndex + 2
         monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "CENTER", "Builder Requests", nil, nil)
-        rowIndex = rowIndex + 1
 
         -- iterate over request and display them row by row
         for i, builderRequest in ipairs(builderRequests) do
+            rowIndex = rowIndex + 1
             local amountString = string.format("%d/%s", builderRequest.provided, builderRequest.name)
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "START", amountString, builderRequest.displayColor, nil)
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "END", builderRequest.target, builderRequest.displayColor, nil)
-            rowIndex = rowIndex + 1
         end
     end
 
     -- equipment requests
     if #equipmentRequests > 0 then
+        rowIndex = rowIndex + 2
         monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "CENTER", "Equipment", nil, nil)
-        rowIndex = rowIndex + 1
 
         -- iterate over request and display them row by row
         for i, equipmentRequest in ipairs(equipmentRequests) do
+            rowIndex = rowIndex + 1
             local amountString = string.format("%d/%d %s", equipmentRequest.provided, equipmentRequest.requested, equipmentRequest.name)
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "START", amountString, equipmentRequest.displayColor, nil)
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "END", equipmentRequest.target, equipmentRequest.displayColor, nil)
-            rowIndex = rowIndex + 1
         end
     end
 
     -- other requests
     if #otherRequests > 0 then
+        rowIndex = rowIndex + 2
         monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "CENTER", "Other Requests", nil, nil)
-        rowIndex = rowIndex + 1
 
         -- iterate over request and display them row by row
         for i, otherRequest in ipairs(otherRequests) do
@@ -106,9 +106,9 @@ function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests,
                 amountString = string.format("%d/%s", otherRequest.provided, otherRequest.name)
             end
 
+            rowIndex = rowIndex + 1
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "START", amountString, otherRequest.displayColor, nil)
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "END", otherRequest.target, otherRequest.displayColor, nil)
-            rowIndex = rowIndex + 1
         end
     end
 end
