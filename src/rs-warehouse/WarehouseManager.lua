@@ -37,6 +37,7 @@ function WarehouseManager:new(o, monitors, colonyIntegrator, updateInterval, use
     return o
 end
 
+-- updates the request list on every connected display.
 function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests, otherRequests)
     local rowIndex = 3 -- start at row 3 because the first row is the header
 
@@ -89,7 +90,7 @@ function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests,
 end
 
 -- updates the info header on every connected display.
--- format: Timer: 0:00 [night]
+-- format: Time: 0:00 [night]    Remaining 5s
 function WarehouseManager:_updateHeader()
     local currentTime = os.time()
 
