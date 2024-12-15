@@ -79,4 +79,18 @@ function lib.writeLineJustifiedMultiple(monitors, row, align, text, textColor, b
     end
 end
 
+-- clears all rows of a monitor in the given range
+function lib.clearRows(monitors, startRow, endRow)
+    for i, monitor in ipairs(monitors) do
+        local monWidth, monHeight = monitor.getSize()
+        endRow = endRow or monHeight
+        for y=startRow,endRow,1 do
+            monitor.setCursorPos(1,y)
+            for i=1,monWidth do
+                monitor.write(" ")
+            end
+        end
+    end
+end
+
 return lib

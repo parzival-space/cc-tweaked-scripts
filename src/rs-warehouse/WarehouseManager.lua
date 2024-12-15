@@ -68,6 +68,7 @@ end
 -- updates the request list on every connected display.
 function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests, otherRequests)
     local rowIndex = 2 -- start at row 2 because the first row is the header
+    monitorUtils.clearRows(self.monitors, rowIndex, nil)
 
     -- builder requests
     if #builderRequests > 0 then
@@ -216,7 +217,7 @@ function WarehouseManager:tick()
 
     -- reset countdown and handle colony requests
     self.secondsUntilNextScan = self.secondsUntilNextScan - 1
-    if self.secondsUntilNextScan < 0 then
+    if self.secondsUntilNextScan <= 0 then
         self:_handleRequests()
         self.secondsUntilNextScan = self.updateInterval
     end
