@@ -127,7 +127,7 @@ function WarehouseManager:_updateHeader()
     local cycleName, cycleColor = getCurrentDayCycle()
 
     -- draw time
-    local timeString = string.format("Time: %s [%s]   ", textutils.formatTime(currentTime, self.useTwentyFourHour), cycleName)
+    local timeString = string.format("Time: %s [%s]     ", textutils.formatTime(currentTime, self.useTwentyFourHour), cycleName)
     monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "START", timeString, cycleColor, nil)
 
     -- get countdown color
