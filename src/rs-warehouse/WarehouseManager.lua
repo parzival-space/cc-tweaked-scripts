@@ -171,7 +171,6 @@ function WarehouseManager:_handleRequests()
         -- export requested items from refined storage
         local exportPeripheralName = peripheral.getName(self.inventoryPeripheral)
         amountProvided, err = self.rsBridge.exportItemToPeripheral({ name=requestedItem.name, count=amountRequested }, exportPeripheralName)
-        print("Exported x" .. amountProvided .. " / " .. amountRequested .. " => " .. requestedItem.name)
         if err ~= nil then
             print(err)
         end

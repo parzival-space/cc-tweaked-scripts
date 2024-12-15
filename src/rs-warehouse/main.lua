@@ -9,7 +9,7 @@ local rsBridge = peripheral.find("rsBridge")
 
 local inventory = peripheral.find("inventory")
 
-local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, 5, true)
+local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, 15, true)
 
 local timer = os.startTimer(1)
 parallel.waitForAll(
