@@ -1,11 +1,11 @@
 local monitorUtils = require("lib/monitorUtils")
 
 local DAY_CYCLE_MAP = {
-    { trigger = 0, cycle = "night", color = 0x2 },
+    { trigger = 0, cycle = "night", color = 0x4000 },
     { trigger = 4, cycle = "sunrise", color = 0x2 },
     { trigger = 6, cycle = "day", color = 0x10 },
     { trigger = 18, cycle = "sunset", color = 0x2 },
-    { trigger = 19.5, cycle = "night", color = 0x2 },
+    { trigger = 19.5, cycle = "night", color = 0x4000 },
 }
 local COUNTDOWN_COLOR_MAP = {
     { trigger = 0, color = 0x4000 },
@@ -14,6 +14,28 @@ local COUNTDOWN_COLOR_MAP = {
 }
 local MAX_EQUIPMENT_LEVEL_MATCHER = "maximal level:%s*([^%s]+)"
 local BUILDER_MATCHER = "^Builder%s"
+
+
+-- helper function, returns the cycle phase name and color of the
+-- current day based on DAY_CYCLE_MAP
+local function getCurrentDayCycle()
+    local currentTime = os.time()
+
+    -- get current daytime
+    local cycleName = "???"
+    local cycleColor = nil
+    for i = #DAY_CYCLE_MAP, 1, -1 do
+        local cycleEntry = DAY_CYCLE_MAP[i]
+        if currentTime >= cycleEntry.trigger then
+            cycleName = cycleEntry.cycle
+            cycleColor = cycleEntry.color
+            break
+        end
+    end
+
+    return cycleName, cycleColor
+end
+
 
 local WarehouseManager = {
     monitors = {},
@@ -97,21 +119,11 @@ function WarehouseManager:_updateHeader()
     local currentTime = os.time()
 
     -- get current daytime
-    local cycleName = "???"
-    local cycleColor = nil
-    for i = #DAY_CYCLE_MAP, 1, -1 do
-        local cycleEntry = DAY_CYCLE_MAP[i]
-        if currentTime >= cycleEntry.trigger then
-            cycleName = cycleEntry.cycle
-            cycleColor = cycleEntry.color
-            break
-        end
-    end
+    local cycleName, cycleColor = getCurrentDayCycle()
 
     -- draw time
     local timeString = string.format("Time: %s [%s]   ", textutils.formatTime(currentTime, self.useTwentyFourHour), cycleName)
     monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "START", timeString, cycleColor, nil)
-
 
     -- get countdown color
     local cdColor = nil
@@ -124,8 +136,12 @@ function WarehouseManager:_updateHeader()
     end
 
     -- draw update countdown
-    local countdownString = string.format("   Remaining %ss", self.secondsUntilNextScan)
-    monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "END", countdownString, cdColor, nil)
+    if cycleName ~= "night" then
+        local countdownString = string.format("     Remaining: %ss", self.secondsUntilNextScan)
+        monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "END", countdownString, cdColor, nil)
+    else
+        monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "END", "     Remaining: PAUSED", 0x4000, nil)
+    end
 end
 
 -- handles the minecolony requests and updates all connected displays
@@ -168,6 +184,10 @@ end
 -- logic loop, should be called every second
 function WarehouseManager:tick()
     self:_updateHeader()
+
+    -- skip if its currently night => citizen will sleep anyway
+    local dayPhase = getCurrentDayCycle();
+    if dayPhase == "night" then return end
 
     -- reset countdown and handle colony requests
     self.secondsUntilNextScan = self.secondsUntilNextScan - 1
