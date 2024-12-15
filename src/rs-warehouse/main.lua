@@ -5,8 +5,11 @@ local WarehouseManager = require("WarehouseManager")
 local monitors = monitorUtils.getMonitors()
 monitorUtils.initMonitors(monitors, 0.75, 0x1, 0x8000, false)
 local colonyIntegrator = peripheral.find("colonyIntegrator")
+local rsBridge = peripheral.find("rsBridge")
 
-local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, 5, true)
+local inventory = peripheral.find("inventory")
+
+local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, 5, true)
 
 local timer = os.startTimer(1)
 parallel.waitForAll(

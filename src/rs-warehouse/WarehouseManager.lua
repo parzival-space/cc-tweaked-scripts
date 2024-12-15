@@ -40,11 +40,13 @@ end
 local WarehouseManager = {
     monitors = {},
     colonyIntegrator = {},
+    rsBridge = {},
+    inventoryPeripheral = {},
     secondsUntilNextScan = 0,
     updateInterval = 0,
     useTwentyFourHour = true
 }
-function WarehouseManager:new(o, monitors, colonyIntegrator, updateInterval, useTwentyFourHour)
+function WarehouseManager:new(o, monitors, colonyIntegrator, rsBridge, inventoryPeripheral, updateInterval, useTwentyFourHour)
     -- required for class structure
     o = o or {}
     setmetatable(o, self)
@@ -52,6 +54,8 @@ function WarehouseManager:new(o, monitors, colonyIntegrator, updateInterval, use
 
     self.monitors = monitors or error("No monitors provided")
     self.colonyIntegrator = colonyIntegrator or error("Colony Integrator not provided")
+    self.rsBridge = rsBridge or error("RS Bridge not provided")
+    self.inventoryPeripheral = inventoryPeripheral or error("Inventory not provided")
     self.secondsUntilNextScan = updateInterval or 15
     self.updateInterval = updateInterval or 15
     self.useTwentyFourHour = useTwentyFourHour or true
@@ -157,23 +161,45 @@ function WarehouseManager:_handleRequests()
         local requestedItem = colonyRequest.items[1]
         local amountRequested = colonyRequest.count
         local amountProvided = 0 -- items provided after this scann
+        local resultColor = 0x1
 
         -- costruct shorted name
         local targetTitle, targetName = colonyRequest.target:match("^(%S+)%s.*%s(%S+)$")
         local targetName = targetTitle .. " " .. targetName
 
-        -- TODO: add RS logic
+        -- export requested items from refined storage
+        local exportPeripheralName = peripheral.getName(self.inventoryPeripheral)
+        amountProvided, err = self.rsBridge.exportItemToPeripheral({ name=requestedItem.name, count=amountRequested }, exportPeripheralName)
+        print("Exported x" .. amountProvided .. " / " .. amountRequested .. " => " .. requestedItem.name)
+        if err ~= nil then
+            print(err)
+        end
+
+        -- start autocrafting if possible
+        resultColor = 0x2000
+        if amountProvided < amountRequested then
+            if self.rsBridge.isItemCrafting({name=requestedItem.name, count=amountRequested}) then
+                resultColor = 0x10
+                print("[Crafting]", amountRequested, "x", requestedItem.name)
+            elseif self.rsBridge.craftItem({name=requestedItem.name, count=amountRequested}) then
+                resultColor = 0x10
+                print("[Scheduled]", amountRequested, "x", requestedItem.name)
+            else
+                resultColor = 0x4000
+                print("[Failed]", requestedItem.name)
+            end
+        end
 
         -- sort requests
         -- TODO: add color logic
         if colonyRequest.desc:match(MAX_EQUIPMENT_LEVEL_MATCHER) ~= nil then
             local equipmentLevel = colonyRequest.desc:match(MAX_EQUIPMENT_LEVEL_MATCHER)
             local requestName = equipmentLevel .. " " .. colonyRequest.name
-            table.insert(equipmentRequests, { name=requestName, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=nil })
+            table.insert(equipmentRequests, { name=requestName, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=resultColor })
         elseif colonyRequest.target:match(BUILDER_MATCHER) ~= nil then
-            table.insert(builderRequests, { name=colonyRequest.name, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=nil })
+            table.insert(builderRequests, { name=colonyRequest.name, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=resultColor })
         else
-            table.insert(otherRequests, { name=colonyRequest.name, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=nil })
+            table.insert(otherRequests, { name=colonyRequest.name, item=requestedItem.name, target=targetName, requested=amountRequested, provided=amountProvided, displayColor=resultColor })
         end
     end
 
