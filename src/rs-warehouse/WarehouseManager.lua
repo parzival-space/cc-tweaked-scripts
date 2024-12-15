@@ -161,12 +161,15 @@ function WarehouseManager:_handleRequests()
         -- always use first items: these are available options to satisfy the request
         local requestedItem = colonyRequest.items[1]
         local amountRequested = colonyRequest.count
-        local amountProvided = 0 -- items provided after this scann
+        local amountProvided = 0 -- items provided after this scan
         local resultColor = 0x1
 
         -- costruct shorted name
-        local targetTitle, targetName = colonyRequest.target:match("^(%S+)%s.*%s(%S+)$")
-        local targetName = targetTitle .. " " .. targetName
+        local targetName = colonyRequest.target
+        if string.find(colonyRequest.target, " ") then
+            local targetTitle, targetLastName = colonyRequest.target:match("^(%S+)%s.*%s(%S+)$")
+            targetName = targetTitle .. " " .. targetLastName
+        end
 
         -- export requested items from refined storage
         local exportPeripheralName = peripheral.getName(self.inventoryPeripheral)
