@@ -5,5 +5,5 @@
     "metadata": true,
     "main": "main.lua",
     "rootModuleName": "__root",
-    "imports": [ "/src/player-tracker/?.lua" ]
+    "imports": [ "?.lua" ]
 }
