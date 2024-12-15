@@ -34,6 +34,8 @@ function WarehouseManager:new(o, monitors, colonyIntegrator, updateInterval, use
     self.updateInterval = updateInterval or 15
     self.useTwentyFourHour = useTwentyFourHour or true
 
+    -- run initial request handling
+    self:triggerRequestHandling()
     return o
 end
 
@@ -79,7 +81,7 @@ function WarehouseManager:_updateRequestList(equipmentRequests, builderRequests,
             -- other request may required additional formating based on number requirements or not
             local amountString = string.format("%d %s", otherRequest.requested, otherRequest.name)
             if tonumber(otherRequest.name:sub(1,1)) ~= nil then
-                amountString = string.format("%d/%s", otherRequest.requested, otherRequest.name)
+                amountString = string.format("%d/%s", otherRequest.provided, otherRequest.name)
             end
 
             monitorUtils.writeLineJustifiedMultiple(self.monitors, rowIndex, "START", amountString, otherRequest.displayColor, nil)
