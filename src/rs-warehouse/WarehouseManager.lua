@@ -191,7 +191,6 @@ function WarehouseManager:_handleRequests()
         end
 
         -- sort requests
-        -- TODO: add color logic
         if colonyRequest.desc:match(MAX_EQUIPMENT_LEVEL_MATCHER) ~= nil then
             local equipmentLevel = colonyRequest.desc:match(MAX_EQUIPMENT_LEVEL_MATCHER)
             local requestName = equipmentLevel .. " " .. colonyRequest.name
