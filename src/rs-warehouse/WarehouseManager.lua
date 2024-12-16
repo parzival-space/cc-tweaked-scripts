@@ -176,6 +176,8 @@ function WarehouseManager:_handleRequests()
         local amountProvided = 0 -- items provided after this scan
         local resultColor = 0x1
 
+        print("[Info] Handling request for", requestedItem.name)
+
         -- costruct shorted name
         local targetName = colonyRequest.target
         if string.find(colonyRequest.target, " ") then
