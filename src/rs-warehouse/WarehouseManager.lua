@@ -158,8 +158,18 @@ function WarehouseManager:_handleRequests()
     -- fetch open request and categorize them
     local colonyRequests = self.colonyIntegrator.getRequests()
     for i, colonyRequest in ipairs(colonyRequests) do
-        -- always use first items: these are available options to satisfy the request
+        -- always use first items, but try to prefer vanilla items if possible
         local requestedItem = colonyRequest.items[1]
+        if #colonyRequest.items > 1 then
+            local minecraftPrefix = "minecraft:"
+            for i, colonyRequestItem in ipairs(colonyRequest.items) do
+                if string.sub(colonyRequestItem.name, 1, string.len(minecraftPrefix)) == minecraftPrefix then
+                    requestedItem = colonyRequestItem
+                    break
+                end
+            end
+        end
+
         local amountRequested = colonyRequest.count
         local amountProvided = 0 -- items provided after this scan
         local resultColor = 0x1
