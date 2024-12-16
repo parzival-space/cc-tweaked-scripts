@@ -162,9 +162,11 @@ function WarehouseManager:_handleRequests()
         local requestedItem = colonyRequest.items[1]
         if #colonyRequest.items > 1 then
             local minecraftPrefix = "minecraft:"
-            for i, colonyRequestItem in ipairs(colonyRequest.items) do
-                if string.sub(colonyRequestItem.name, 1, string.len(minecraftPrefix)) == minecraftPrefix then
-                    requestedItem = colonyRequestItem
+
+            -- scan reversed, because minecolonies lists from lowest to highest item level
+            for j=#colonyRequest.items,1,-1 do
+                if string.sub(colonyRequest.items[j].name, 1, string.len(minecraftPrefix)) == minecraftPrefix then
+                    requestedItem = colonyRequest.items[j]
                     break
                 end
             end
@@ -201,6 +203,8 @@ function WarehouseManager:_handleRequests()
                 resultColor = 0x4000
                 print("[Failed]", requestedItem.name)
             end
+        else
+            print("[Success] Provided ", amountProvided, "/", amountRequested, requestedItem.name)
         end
 
         -- sort requests
