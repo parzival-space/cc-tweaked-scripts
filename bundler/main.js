@@ -1,4 +1,4 @@
-import {readdir, readFile, writeFile} from 'fs/promises';
+import {readdir, readFile, appendFile, writeFile} from 'fs/promises';
 import {existsSync} from 'fs';
 import {printHeader, COLOR, printFooter, luaPreProcessorLogger, luaExpressionHandler} from './logging.js';
 import {createRequire} from 'module';
@@ -67,10 +67,26 @@ for (let project of activeProjects) {
             expressionHandler: luaExpressionHandler
         });
 
-        // write to output file
+        // get output file
         const outputFile= `${basePath}/dist/${project.name}.lua`;
         console.log(`Writing results to ${outputFile}`)
-        await writeFile(outputFile, bundledLua);
+        await writeFile(outputFile, "")
+
+        // read license
+        if (existsSync(`${project.path}/LICENSE` && projectSettings.includeLicense)) {
+            const license = await readFile(`${project.path}/LICENSE`)
+            const licenseHeader = license.toString()
+                .split('\n')
+                .map(line => `-- ${line}`)
+                .join('\n');
+
+            console.log("Writing license header...")
+            await appendFile(outputFile, `${licenseHeader}\n\n`)
+        }
+
+        // write to output file
+        console.log("Writing script content...")
+        await appendFile(outputFile, bundledLua);
 
         // report results
         printFooter(
