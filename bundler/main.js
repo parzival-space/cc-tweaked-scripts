@@ -73,7 +73,7 @@ for (let project of activeProjects) {
         await writeFile(outputFile, "")
 
         // read license
-        if (existsSync(`${project.path}/LICENSE` && projectSettings.includeLicense)) {
+        if (existsSync(`${project.path}/LICENSE`) && projectSettings.includeLicense) {
             const license = await readFile(`${project.path}/LICENSE`)
             const licenseHeader = license.toString()
                 .split('\n')
