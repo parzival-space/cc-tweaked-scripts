@@ -1,4 +1,5 @@
 local monitorUtils = require("lib/monitorUtils")
+local vanillaUtils = require("lib/vanillaUtils")
 
 local DAY_CYCLE_MAP = {
     { trigger = 0, cycle = "night", color = 0x4000 },
@@ -159,17 +160,34 @@ function WarehouseManager:_handleRequests()
     local colonyRequests = self.colonyIntegrator.getRequests()
     for i, colonyRequest in ipairs(colonyRequests) do
         -- always use last items, but try to prefer vanilla items if possible
-        local requestedItem = colonyRequest.items[#colonyRequest.items]
+        local requestedItem = colonyRequest.items[1]
         if #colonyRequest.items > 1 then
             local minecraftPrefix = "minecraft:"
 
-            -- scan reversed, because minecolonies lists from lowest to highest item level
-            for j=#colonyRequest.items,1,-1 do
-                if string.sub(colonyRequest.items[j].name, 1, string.len(minecraftPrefix)) == minecraftPrefix then
-                    requestedItem = colonyRequest.items[j]
-                    break
+            -- filter out all non-vanilla items
+            local minecraftItems = {}
+            local minecraftItemNames = {}
+            for _, colonyRequestItem in ipairs(colonyRequest.items) do
+                if string.sub(colonyRequestItem.name, 1, string.len(minecraftPrefix)) == minecraftPrefix then
+                    table.insert(minecraftItems, colonyRequestItem)
+                    table.insert(minecraftItemNames, colonyRequestItem.name)
                 end
             end
+
+            -- if any vanilla items where found, try to find the highest level item
+            local highestItemId = vanillaUtils.getHighestItemByLevel(minecraftItemNames)
+            local selectedRequestItem = minecraftItems[1]
+            if highestItemId ~= nil then
+                for _, minecraftItem in ipairs(minecraftItems) do
+                    if minecraftItem.name == highestItemId then
+                        selectedRequestItem = minecraftItem
+                        break
+                    end
+                end
+            end
+
+            -- failsafe, shouldn't be necessary, but fallback if the item could not be found
+            requestedItem = selectedRequestItem
         end
 
         local amountRequested = colonyRequest.count
