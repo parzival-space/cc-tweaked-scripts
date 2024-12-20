@@ -1,6 +1,7 @@
 {
     "force": false,
     "isolate": false,
+    "includeLicense": true,
     "luaVersion": "5.3",
     "metadata": true,
     "main": "main.lua",
