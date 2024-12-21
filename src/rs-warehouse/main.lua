@@ -1,6 +1,10 @@
 local monitorUtils = require("lib/monitorUtils")
 local wirelessUtils = require("lib/wirelessUtils")
+local configLoader = require("lib/configLoader")
 local WarehouseManager = require("WarehouseManager")
+
+-- load config
+local config = configLoader.load("rsWarehouse.json")
 
 -- init devices
 local monitors = monitorUtils.getMonitors()
@@ -10,8 +14,7 @@ local rsBridge = peripheral.find("rsBridge")
 local modem = wirelessUtils.getWirelessModem()
 local inventory = peripheral.find("inventory")
 
-local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, modem, "rsWarehouse", 15, true)
-
+local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, modem, config.hostname, config.updateInterval, config.use24HourFormat)
 local timer = os.startTimer(1)
 parallel.waitForAll(
     -- logic loop of the warehouse manager, needs to be called every second
