@@ -159,6 +159,11 @@ function WarehouseManager:_updateHeader()
     else
         monitorUtils.writeLineJustifiedMultiple(self.monitors, 1, "END", "     Remaining: PAUSED", 0x4000, nil)
     end
+
+    -- broadcast to network
+    print("[NET] Broadcasting Header...")
+    local netMessage = textutils.serialize({ type="HEADER", secondsUntilNextScan=self.secondsUntilNextScan })
+    rednet.broadcast(netMessage, PROTOCOL_NAME)
 end
 
 -- handles the minecolony requests and updates all connected displays
@@ -256,7 +261,7 @@ function WarehouseManager:_handleRequests()
     -- inform network
     if self.wirelessFeatureEnabled == true then
         print("[NET] Broadcasting " .. #equipmentRequests .. "e, " .. #builderRequests .. "b, " .. #otherRequests .. "o")
-        local netMessage = textutils.serialize({ equipmentRequests=equipmentRequests, builderRequests=builderRequests, otherRequests=otherRequests })
+        local netMessage = textutils.serialize({ type="BODY", equipmentRequests=equipmentRequests, builderRequests=builderRequests, otherRequests=otherRequests })
         rednet.broadcast(netMessage, PROTOCOL_NAME)
     end
 
