@@ -58,8 +58,8 @@ function lib.writeLineJustified(monitor, row, align, text, textColor, bgColor)
     -- calculate x position
     local x = 1
     if align == "START" then x = 1 end
-    if align == "CENTER" then x = math.floor((width - #text) / 2) end
-    if align == "END" then x = width - #text end
+    if align == "CENTER" then x = math.floor((width - #text + 1) / 2) end
+    if align == "END" then x = width - #text + 1 end
 
     -- draw
     monitor.setTextColor(textColor or monitor.getTextColor())
@@ -90,6 +90,36 @@ function lib.clearRows(monitors, startRow, endRow)
                 monitor.write(" ")
             end
         end
+    end
+end
+
+-- prints a progress bar in the given of the defined percent value (0 - 1)
+function lib.progressBar(monitor, row, percent, fColor, bgColor)
+    local width, _ = monitor.getSize()
+    monitor.setTextColor(fColor or monitor.getTextColor())
+    monitor.setBackgroundColor(bgColor or  monitor.getBackgroundColour())
+
+    -- clear
+    monitor.setCursorPos(1, row)
+    for i=1,width do
+        monitor.write(" ")
+    end
+
+    -- fill
+    monitor.setCursorPos(1, row)
+    for i=1,(width * percent) do
+        monitor.write("/")
+    end
+end
+
+function lib.progressBarMultiple(monitors, row, percent, fColor, bgColor)
+    for i, monitor in ipairs(monitors) do
+        if row < 0 then
+            local _, height = monitor.getSize()
+            row = height + 1 + row
+        end
+
+        lib.progressBar(monitor, row, percent, fColor, bgColor)
     end
 end
 

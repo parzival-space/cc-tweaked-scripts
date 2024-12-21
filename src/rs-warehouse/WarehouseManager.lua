@@ -264,22 +264,45 @@ function WarehouseManager:_handleRequests()
         local netMessage = textutils.serialize({ type="BODY", equipmentRequests=equipmentRequests, builderRequests=builderRequests, otherRequests=otherRequests })
         rednet.broadcast(netMessage, PROTOCOL_NAME)
     end
+end
 
+-- write a progress bar
+function WarehouseManager:_updateFooter()
+    -- get current daytime
+    local cycleName, cycleColor = getCurrentDayCycle()
+
+    -- get countdown color
+    local cdColor = 0x4000
+    if cycleName ~= "night" then
+        for i = #COUNTDOWN_COLOR_MAP, 1, -1 do
+            local cdEntry = COUNTDOWN_COLOR_MAP[i]
+            if self.secondsUntilNextScan >= cdEntry.trigger then
+                cdColor = cdEntry.color
+                break
+            end
+        end
+    end
+
+    monitorUtils.progressBarMultiple(self.monitors, -1, (self.updateInterval - self.secondsUntilNextScan) / self.updateInterval, cdColor, nil)
 end
 
 -- logic loop, should be called every second
 function WarehouseManager:tick()
-    self:_updateHeader()
-
     -- skip if its currently night => citizen will sleep anyway
     local dayPhase = getCurrentDayCycle();
-    if dayPhase == "night" then return end
+    if dayPhase ~= "night" then
+        self.secondsUntilNextScan = self.secondsUntilNextScan - 1
+    end
 
-    -- reset countdown and handle colony requests
-    self.secondsUntilNextScan = self.secondsUntilNextScan - 1
     if self.secondsUntilNextScan <= 0 then
+        self:_updateHeader()
+        self:_updateFooter()
+
         self:_handleRequests()
         self.secondsUntilNextScan = self.updateInterval
+    else
+        self:_updateHeader()
+        self:_updateFooter()
     end
 end
 
