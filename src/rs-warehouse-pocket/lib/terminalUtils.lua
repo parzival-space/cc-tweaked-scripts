@@ -47,4 +47,28 @@ function lib.clearRows(startRow, endRow)
     end
 end
 
+-- prints a progress bar in the given of the defined percent value (0 - 1)
+function lib.progressBar(row, percent, fColor, bgColor)
+    if row < 0 then
+        local _, height = term.getSize()
+        row = height + 1 + row
+    end
+
+    local width, _ = term.getSize()
+    term.setTextColor(fColor or term.getTextColor())
+    term.setBackgroundColor(bgColor or  term.getBackgroundColour())
+
+    -- clear
+    term.setCursorPos(1, row)
+    for i=1,width do
+        term.write(" ")
+    end
+
+    -- fill
+    term.setCursorPos(1, row)
+    for i=1,(width * percent) do
+        term.write("/")
+    end
+end
+
 return lib

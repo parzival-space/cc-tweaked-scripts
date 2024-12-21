@@ -143,6 +143,26 @@ function WarehouseManagerClient:_updateHeader(secondsUntilNextScan)
     end
 end
 
+-- write a progress bar
+function WarehouseManagerClient:_updateFooter(secondsUntilNextScan, updateInterval)
+    -- get current daytime
+    local cycleName, cycleColor = getCurrentDayCycle()
+
+    -- get countdown color
+    local cdColor = 0x4000
+    if cycleName ~= "night" then
+        for i = #COUNTDOWN_COLOR_MAP, 1, -1 do
+            local cdEntry = COUNTDOWN_COLOR_MAP[i]
+            if secondsUntilNextScan >= cdEntry.trigger then
+                cdColor = cdEntry.color
+                break
+            end
+        end
+    end
+
+    terminalUtils.progressBar(-1, (updateInterval - secondsUntilNextScan) / updateInterval, cdColor, nil)
+end
+
 -- logic loop, should be called in a loop
 function WarehouseManagerClient:handle()
     local sender, netMessage = rednet.receive(PROTOCOL_NAME)
@@ -155,6 +175,8 @@ function WarehouseManagerClient:handle()
             self:_updateHeader(netPackage.secondsUntilNextScan)
         elseif netPackage.type == "BODY" then
             self:_updateRequestList(netPackage.equipmentRequests, netPackage.builderRequests, netPackage.otherRequests)
+        elseif netPackage.type == "FOOTER" then
+            self:_updateFooter(netPackage.secondsUntilNextScan, netPackage.updateInterval)
         else
             print("Warning: Unknown package type '" .. netPackage.type .. "'")
         end

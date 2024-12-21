@@ -258,7 +258,7 @@ function WarehouseManager:_handleRequests()
     -- display requests
     self:_updateRequestList(equipmentRequests, builderRequests, otherRequests)
 
-    -- inform network
+    -- notify network
     if self.wirelessFeatureEnabled == true then
         print("[NET] Broadcasting " .. #equipmentRequests .. "e, " .. #builderRequests .. "b, " .. #otherRequests .. "o")
         local netMessage = textutils.serialize({ type="BODY", equipmentRequests=equipmentRequests, builderRequests=builderRequests, otherRequests=otherRequests })
@@ -283,7 +283,15 @@ function WarehouseManager:_updateFooter()
         end
     end
 
+    -- draw
     monitorUtils.progressBarMultiple(self.monitors, -1, (self.updateInterval - self.secondsUntilNextScan) / self.updateInterval, cdColor, nil)
+
+    -- notify network
+    if self.wirelessFeatureEnabled == true then
+        print("[NET] Broadcasting Footer")
+        local netMessage = textutils.serialize({ type="FOOTER", secondsUntilNextScan=self.secondsUntilNextScan, updateInterval=self.updateInterval })
+        rednet.broadcast(netMessage, PROTOCOL_NAME)
+    end
 end
 
 -- logic loop, should be called every second
