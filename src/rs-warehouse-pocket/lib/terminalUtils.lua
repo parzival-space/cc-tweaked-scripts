@@ -49,6 +49,8 @@ end
 
 -- prints a progress bar in the given of the defined percent value (0 - 1)
 function lib.progressBar(row, percent, fColor, bgColor)
+    local origTextColor = term.getTextColor()
+    local origBgColor = term.getBackgroundColor()
     if row < 0 then
         local _, height = term.getSize()
         row = height + 1 + row
@@ -69,6 +71,9 @@ function lib.progressBar(row, percent, fColor, bgColor)
     for i=1,(width * percent) do
         term.write("/")
     end
+    
+    term.setTextColor(origTextColor)
+    term.setBackgroundColor(origBgColor)
 end
 
 return lib

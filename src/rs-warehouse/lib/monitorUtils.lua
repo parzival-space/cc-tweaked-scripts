@@ -95,6 +95,8 @@ end
 
 -- prints a progress bar in the given of the defined percent value (0 - 1)
 function lib.progressBar(monitor, row, percent, fColor, bgColor)
+    local origTextColor = monitor.getTextColor()
+    local origBgColor = monitor.getBackgroundColor()
     if row < 0 then
         local _, height = monitor.getSize()
         row = height + 1 + row
@@ -115,6 +117,8 @@ function lib.progressBar(monitor, row, percent, fColor, bgColor)
     for i=1,(width * percent) do
         monitor.write("/")
     end
+    monitor.setTextColor(origTextColor)
+    monitor.setBackgroundColor(origBgColor)
 end
 
 function lib.progressBarMultiple(monitors, row, percent, fColor, bgColor)
