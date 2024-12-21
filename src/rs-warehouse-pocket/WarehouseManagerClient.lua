@@ -51,6 +51,7 @@ function WarehouseManagerClient:new(o, modem, host, useTwentyFourHour)
 
     -- try to lookup host
     if host ~= nil then
+        rednet.open(peripheral.getName(self.modem))
         self.hostId = rednet.lookup(PROTOCOL_NAME, host) or error("No host found")
     else
         error("No host defined")
