@@ -41,6 +41,10 @@ end
 function lib.initModemHost(modem, protocol, hostname)
     rednet.open(peripheral.getName(modem))
     rednet.host(protocol, hostname)
+
+    if rednet.lookup(protocol, hostname) == nil then
+        error("Modem selfcheck failed")
+    end
 end
 
 return lib
