@@ -1,5 +1,6 @@
 local monitorUtils = require("lib/monitorUtils")
 local vanillaUtils = require("lib/vanillaUtils")
+local wirelessUtils = require("lib/wirelessUtils")
 
 local DAY_CYCLE_MAP = {
     { trigger = 0, cycle = "night", color = 0x4000 },
@@ -15,6 +16,7 @@ local COUNTDOWN_COLOR_MAP = {
 }
 local MAX_EQUIPMENT_LEVEL_MATCHER = "maximal level:%s*([^%s]+)"
 local BUILDER_MATCHER = "^Builder%s"
+local PROTOCOL_NAME = "rsWarehouse"
 
 
 -- helper function, returns the cycle phase name and color of the
@@ -43,11 +45,13 @@ local WarehouseManager = {
     colonyIntegrator = {},
     rsBridge = {},
     inventoryPeripheral = {},
+    modem = {},
+    wirelessFeatureEnabled = false,
     secondsUntilNextScan = 0,
     updateInterval = 0,
     useTwentyFourHour = true
 }
-function WarehouseManager:new(o, monitors, colonyIntegrator, rsBridge, inventoryPeripheral, updateInterval, useTwentyFourHour)
+function WarehouseManager:new(o, monitors, colonyIntegrator, rsBridge, inventoryPeripheral, modem, hostname, updateInterval, useTwentyFourHour)
     -- required for class structure
     o = o or {}
     setmetatable(o, self)
@@ -57,9 +61,16 @@ function WarehouseManager:new(o, monitors, colonyIntegrator, rsBridge, inventory
     self.colonyIntegrator = colonyIntegrator or error("Colony Integrator not provided")
     self.rsBridge = rsBridge or error("RS Bridge not provided")
     self.inventoryPeripheral = inventoryPeripheral or error("Inventory not provided")
+    self.modem = modem or nil
     self.secondsUntilNextScan = updateInterval or 15
     self.updateInterval = updateInterval or 15
     self.useTwentyFourHour = useTwentyFourHour or true
+
+    -- detect if modem feature is supported
+    if self.modem ~= nil then
+        wirelessUtils.initModemHost(self.modem, PROTOCOL_NAME, hostname)
+        self.wirelessFeatureEnabled = true
+    end
 
     -- run initial request handling
     self:triggerRequestHandling()
@@ -241,6 +252,14 @@ function WarehouseManager:_handleRequests()
 
     -- display requests
     self:_updateRequestList(equipmentRequests, builderRequests, otherRequests)
+
+    -- inform network
+    if self.wirelessFeatureEnabled == true then
+        print("[NET] Broadcasting " .. #equipmentRequests .. "e, " .. #builderRequests .. "b, " .. #otherRequests .. "o")
+        local netMessage = textutils.serialize({ equipmentRequests=equipmentRequests, builderRequests=builderRequests, otherRequests=otherRequests })
+        rednet.broadcast(netMessage, PROTOCOL_NAME)
+    end
+
 end
 
 -- logic loop, should be called every second

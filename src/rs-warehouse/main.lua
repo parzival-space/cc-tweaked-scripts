@@ -1,4 +1,5 @@
 local monitorUtils = require("lib/monitorUtils")
+local wirelessUtils = require("lib/wirelessUtils")
 local WarehouseManager = require("WarehouseManager")
 
 -- init devices
@@ -6,10 +7,10 @@ local monitors = monitorUtils.getMonitors()
 monitorUtils.initMonitors(monitors, 0.75, 0x1, 0x8000, false)
 local colonyIntegrator = peripheral.find("colonyIntegrator")
 local rsBridge = peripheral.find("rsBridge")
-
+local modem = wirelessUtils.getWirelessModem()
 local inventory = peripheral.find("inventory")
 
-local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, 15, true)
+local manager = WarehouseManager:new(nil, monitors, colonyIntegrator, rsBridge, inventory, modem, "rsWarehouse", 15, true)
 
 local timer = os.startTimer(1)
 parallel.waitForAll(
