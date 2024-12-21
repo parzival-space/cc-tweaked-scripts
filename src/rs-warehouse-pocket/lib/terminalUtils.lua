@@ -23,8 +23,8 @@ function lib.writeLineJustified(row, align, text, textColor, bgColor)
     -- calculate x position
     local x = 1
     if align == "START" then x = 1 end
-    if align == "CENTER" then x = math.floor((width - #text) / 2) end
-    if align == "END" then x = width - #text end
+    if align == "CENTER" then x = math.floor((width - #text + 1) / 2) end
+    if align == "END" then x = width - #text + 1 end
 
     -- draw
     term.setTextColor(textColor or term.getTextColor())
