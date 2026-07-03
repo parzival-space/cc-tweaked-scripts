@@ -87,7 +87,19 @@ function DraconicReactorManager:_handle_warming_up()
 end
 
 function DraconicReactorManager:_handle_running()
-    -- todo: auto adjust power flow
+    local reactor_info = self.reactor.getReactorInfo()
+
+    -- auto adjust input flow
+    -- this will prevent the reactor going nuclear even if the temperature reaches max.
+    -- the code below expects that infinite energy is available to power the shield
+    local current_flux_flow = self.input_flux_gate.getFlow()
+    local needed_flux_flow = reactor_info.fieldDrainRate / (1 - (30 / 100)) -- todo: replace 50 with configurable value
+    if current_flux_flow ~= needed_flux_flow then
+        print("Updating input flux rate " .. current_flux_flow .. " RF/t -> " .. needed_flux_flow .. " RF/t")
+        self.input_flux_gate.setSignalLowFlow(needed_flux_flow)
+    end
+
+    -- todo: slowly rise until temperature goal
 end
 
 function DraconicReactorManager:_handle_stopping()
