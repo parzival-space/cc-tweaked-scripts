@@ -80,13 +80,14 @@ function DraconicReactorManager:_handle_warming_up()
 
     -- transition to running state once ready
     local reactor_info = self.reactor.getReactorInfo()
-    if reactor_info.temperature >= 2000 * 0.9 and reactor_info.temperature <= 2000 * 1.1 then
+    if reactor_info.temperature >= 2000 and reactor_info.temperature <= 2000 * 1.1 then
+        print("Activating reactor")
         self.reactor.activateReactor()
     end
 end
 
 function DraconicReactorManager:_handle_running()
-
+    -- todo: auto adjust power flow
 end
 
 function DraconicReactorManager:_handle_stopping()
