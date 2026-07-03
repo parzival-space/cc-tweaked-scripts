@@ -33,9 +33,12 @@ function DraconicReactorManager:handle()
     while true do
         local reactor_info = self.reactor.getReactorInfo()
         if not reactor_info then
-            print("DEBUG: Failed to get Reactor Info!")
+            print("Reactor not setup properly. Retrying in 5 seconds...")
+            sleep(5)
             goto continue
         end
+
+        -- todo: update reactor values
 
         -- handle reactor based on its current state
         self.reactor_state = reactor_info.status
@@ -53,8 +56,8 @@ function DraconicReactorManager:handle()
             print("Unexpected Reactor state: " .. self.reactor_state)
         end
 
-        ::continue::
         sleep(0.2)
+        ::continue::
     end
 end
 
@@ -63,10 +66,22 @@ function DraconicReactorManager:_handle_cold()
 end
 
 function DraconicReactorManager:_handle_warming_up()
+    -- speed up warm up by increasing the input flow
     if self.input_flux_gate.getSignalLowFlow() < 900000 then
-        -- speed up warm up by increasing the input flow
-        print("Updating Reactor Input flow to 900000 RF/t")
+        print("Updating input flow to 900000 RF/t")
         self.input_flux_gate.setSignalLowFlow(900000)
+    end
+
+    -- disable output during warmup for safety
+    if self.output_flux_gate.getSignalLowFlow() > 0 then
+        print("Disabling output flow during warm up")
+        self.output_flux_gate.setSignalLowFlow(0)
+    end
+
+    -- transition to running state once ready
+    local reactor_info = self.reactor.getReactorInfo()
+    if reactor_info.temperature >= 2000 * 0.9 and reactor_info.temperature <= 2000 * 1.1 then
+        self.reactor.activateReactor()
     end
 end
 
