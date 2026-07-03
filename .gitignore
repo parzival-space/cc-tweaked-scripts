@@ -4,3 +4,7 @@
 # exlude contents of dist
 /dist/*
 !/dist/.gitkeep
+
+# exclude ide contents
+.idea
+.vscode
