@@ -25,7 +25,7 @@ parallel.waitForAll(
     end,
     function()
         while true do
-            print("STATE = " .. reactor_manager.reactor_state)
+            -- print("STATE = " .. reactor_manager.reactor_state)
             sleep(1)
         end
     end

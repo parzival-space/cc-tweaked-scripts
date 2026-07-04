@@ -15,14 +15,17 @@ local DraconicReactorManager = {
 
     output_flow = 0,
 
-    temperature_goal = 7000,
-    temperature = 0,
+    field_strength = 0,
+    field_strength_goal = 0.50,
 
-    -- PID state
-    _cap_pid = nil
+    temperature = 0,
+    temperature_goal = 7000,
+
+    -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
+    reactor_output_multiplier = 1,
 }
 
-function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output_flux_gate, output_energy_detector)
+function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output_flux_gate)
     -- class constructor
     o = o or {}
     setmetatable(o, self)
@@ -45,106 +48,116 @@ function DraconicReactorManager:handle()
         end
 
         -- update output flow
+        self.reactor_state = reactor_info.state
         self.output_flow = reactor_info.generationRate
         self.temperature = reactor_info.temperature
 
-        -- handle reactor based on its current state
-        self.reactor_state = reactor_info.status
-        if self.reactor_state == ReactorState.COLD then
-            self:_handle_cold()
-        elseif self.reactor_state == ReactorState.WARMING_UP then
-            self:_handle_warming_up()
-        elseif self.reactor_state == ReactorState.RUNNING then
-            self:_handle_running()
-        elseif self.reactor_state == ReactorState.STOPPING then
-            self:_handle_stopping()
-        elseif self.reactor_state == ReactorState.COOLING then
-            self:_handle_cooling()
-        else
-            print("Unexpected Reactor state: " .. tostring(self.reactor_state))
-        end
+        self:_handle_io(reactor_info)
 
-        sleep(0.2)
+        sleep(0.025)
         ::continue::
     end
 end
 
-function DraconicReactorManager:_handle_cold()
-    -- todo: implement
-end
+function DraconicReactorManager:_handle_io(reactor_info)
+    local MAX_TEMPERATURE = 10000
 
-function DraconicReactorManager:_handle_warming_up()
-    -- speed up warm up by increasing the input flow
-    if self.input_flux_gate.getSignalLowFlow() ~= 900000 then
-        print("Updating input flow to 900000 RF/t")
-        self.input_flux_gate.setSignalLowFlow(900000)
+    -- the calculations below are directly taken from the mod sourcecode
+    local core_saturation = reactor_info.energySaturation / reactor_info.maxEnergySaturation    -- reactor saturation percent. range: 0.0 - 1.0
+    local negative_saturation_percentage = (1 - core_saturation) * 99                           -- negative reactor saturation. range: 0 - 99
+
+    local total_fuel = reactor_info.maxFuelConversion                                           -- total fuel
+    local conversion_level = ((reactor_info.fuelConversion / total_fuel) * 1.3) - 0.3           -- conversion level boosts power gen. range: -0.3 - 1.0
+
+    -- local temperature_cap_50 = math.min((reactor_info.temperature / MAX_TEMPERATURE) * 50, 99)  -- ?? original comment by mod author: "50 = Max Temp. Why? TBD"
+    local temperature_cap_50 = math.min((self.temperature_goal / MAX_TEMPERATURE) * 50, 99)
+
+    -- temperature calculation
+    local temperature_offset = 444.7                                                            -- adjusts where the temp falls to at 100% saturation
+    local temperature_rise_exponential = (negative_saturation_percentage ^ 3) / (100 - negative_saturation_percentage) + temperature_offset     -- the exponential temperature rise which increases as the core saturation
+    local temperature_rise_resist = (temperature_cap_50 ^ 4) / (100 - temperature_cap_50)                                                       -- this is used to add resistance as the temp rises
+
+    -- merge temperature calculation into rise amount
+    local temperature_rise_amount = (temperature_rise_exponential - (temperature_rise_resist * (1 - conversion_level)) + conversion_level * 1000) / 10000
+
+    -- energy calculation
+    local energy_base_max_RFt = math.ceil((reactor_info.maxEnergySaturation / 1000) * self.reactor_output_multiplier * 1.5 * 10)
+    local energy_max_RFt = math.ceil(energy_base_max_RFt * (1 + (conversion_level * 2)))
+
+    local energy_generation_rate = (1 - core_saturation) * energy_max_RFt -- unused, just for clarity
+
+    -- field calculation
+    local field_temp_drain_factor = 0
+    if reactor_info.temperature > 8000 then
+        field_temp_drain_factor = 1 + ((reactor_info.temperature - 8000) * (reactor_info.temperature - 8000) * 0.0000025)
+    elseif reactor_info.temperature > 2000 then
+        field_temp_drain_factor = 1
+    elseif reactor_info.temperature > 1000 then
+        field_temp_drain_factor = (reactor_info.temperature  - 1000) / 1000
     end
 
-    -- disable output during warmup for safety
-    if self.output_flux_gate.getSignalLowFlow() ~= 0 then
-        print("Disabling output flow during warm up")
-        self.output_flux_gate.setSignalLowFlow(0)
-    end
+    local field_drain = math.ceil(math.min(field_temp_drain_factor * math.max(0.01, (1 - core_saturation)) * (energy_base_max_RFt / 10.923556), 2147000000))
+    local field_percent = reactor_info.fieldStrength / reactor_info.maxFieldStrength
+    local field_input_rate = field_drain / (1 - field_percent)
 
-    -- transition to running state once ready
-    local reactor_info = self.reactor.getReactorInfo()
-    if reactor_info.temperature >= 2000 and reactor_info.temperature <= 2000 * 1.1 then
-        print("Activating reactor")
-        self.reactor.activateReactor()
-    end
-end
+    local field_strength = reactor_info.fieldStrength - math.min(field_drain, reactor_info.fieldStrength) -- unused, just for clarity
 
-function DraconicReactorManager:_handle_running()
-    local reactor_info = self.reactor.getReactorInfo()
-
-    -- auto adjust input flow
-    -- this will prevent the reactor going nuclear even if the temperature reaches max.
-    -- the code below expects that infinite energy is available to power the shield
-    local current_input_flux_flow = self.input_flux_gate.getFlow()
-    local needed_input_flux_flow = reactor_info.fieldDrainRate / (1 - (20 / 100)) -- todo: replace 20 with configurable value
-    if current_input_flux_flow ~= needed_flux_flow then
-        print("Updating input flux rate " .. current_input_flux_flow .. " RF/t -> " .. needed_input_flux_flow .. " RF/t")
-        self.input_flux_gate.setSignalLowFlow(needed_input_flux_flow)
-    end
-
-    -- when the reactor is in a stable state, gradually increase the max output flow rate.
-    -- if the max output flow is instantly reached, this means the consuming network demands more energy
-    -- which in turn means we need to increase the reactor output further
-    local current_max_output_flow = self.output_flux_gate.getSignalLowFlow()
-    local current_output_flow = reactor_info.generationRate
-    local current_temperature = reactor_info.temperature
-
-    -- local current_energy_saturation = reactor_info.energySaturation / 1000000000
-    -- if current_output_flow >= (current_max_output_flow * 0.9) and current_energy_saturation > 0.8 then
-    if (current_output_flow >= (current_max_output_flow * 0.99) and current_temperature < 7000) or current_max_output_flow <= 0 then
-        -- increase max output, energy demands are meet
-        local new_max_output_flow = current_max_output_flow + 1000
-
-        print("Updating output flux rate " .. current_max_output_flow .. " RF/t -> " .. new_max_output_flow .. " RF/t")
-        self.output_flux_gate.setSignalLowFlow(new_max_output_flow)
-    -- elseif current_energy_saturation < 0.5 then
-    --     -- decrease max output, energy demands are too high
-    --     local new_max_output_flow = current_max_output_flow - 10000
-
-    --     print("Updating output flux rate " .. current_max_output_flow .. " RF/t -> " .. new_max_output_flow .. " RF/t")
-    --     self.output_flux_gate.setSignalLowFlow(new_max_output_flow)
-    end
+    -- fuel calculation
+    local fuel_use_rate = field_temp_drain_factor * (1 - core_saturation) * (0.001 * self.reactor_output_multiplier * 5) -- unused, just for clarity
 
 
-    -- safety: shutdown if overheating
-    local MAX_TEMPERATURE = 8000
-    if reactor_info.temperature >= MAX_TEMPERATURE then
-        print("Failsafe: Reactor reached a temperature higher than " .. MAX_TEMPERATURE .. ", shutting down")
-        self.reactor.stopReactor()
-    end
-end
+    -- calculate input flow
+    local field_strength_error = (reactor_info.maxFieldStrength * self.field_strength_goal) - field_strength
+    local field_required_input = math.min((reactor_info.maxFieldStrength * field_drain) / (reactor_info.maxFieldStrength - field_strength), reactor_info.maxFieldStrength - field_strength)
+    local input_flow = math.min(field_strength_error + field_required_input, reactor_info.maxFieldStrength)
 
-function DraconicReactorManager:_handle_stopping()
 
-end
+    -- calculate output flow
+    local target_temperature_exponential = -(temperature_rise_resist * conversion_level) - 1000 * conversion_level + temperature_rise_resist
+    local term1 = 1334.1 - (3 * target_temperature_exponential)
+    local term2 = (1200690 - (2700 * target_temperature_exponential)) ^ 2
+    local term3 = ((-1350 * target_temperature_exponential) + (((-4 * term1 ^ 3 + term2) ^ (1 / 2)) / 2) + 600345) ^ (1 / 3)
+    local target_negative_core_saturation = -(term1/(3*term3))-(term3/3)
 
-function DraconicReactorManager:_handle_cooling()
+    local core_saturation_target = 1 - (target_negative_core_saturation/99)
+    local saturation_target = core_saturation_target * reactor_info.maxEnergySaturation
+    local saturation_error = reactor_info.energySaturation - saturation_target
+    local output_flow = math.min(saturation_error, (reactor_info.maxEnergySaturation / 40)) + reactor_info.generationRate
 
+    self.output_flux_gate.setSignalLowFlow(output_flow)
+    self.input_flux_gate.setSignalLowFlow(input_flow)
+
+    -- test
+    local targetTempExpo = -(temperature_rise_resist * conversion_level) - 1000 * conversion_level + temperature_rise_resist
+
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("")
+    print("EXPECTED")
+    print("energySaturation             " .. reactor_info.energySaturation)
+    print("generationRate               " .. reactor_info.generationRate)
+    print("fieldDrainRate               " .. reactor_info.fieldDrainRate)
+    print("")
+    print("RESULT")
+    print("output_flow                  " .. output_flow)
+    print("input_flow                   " .. input_flow)
+    print("field_temp_drain_factor      " .. field_temp_drain_factor)
+    print("")
+    print("INPUT")
+    print("field_strength_error         " .. field_strength_error)
+    print("field_required_input         " .. field_required_input)
+    print("")
+    print("OUTPUT")
+    print("target_negative_core_saturation " .. math.ceil(target_negative_core_saturation * 100000) / 100000)
+    
 end
 
 return DraconicReactorManager
