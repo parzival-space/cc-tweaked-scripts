@@ -16,10 +16,10 @@ local DraconicReactorManager = {
     output_flow = 0,
 
     field_strength = 0,
-    field_strength_goal = 0.50,
+    field_strength_goal = 0.30,
 
     temperature = 0,
-    temperature_goal = 7000,
+    temperature_goal = 7500,
 
     -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
     reactor_output_multiplier = 1,
