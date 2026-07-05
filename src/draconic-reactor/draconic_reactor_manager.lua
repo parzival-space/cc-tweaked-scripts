@@ -24,7 +24,7 @@ local DraconicReactorManager = {
     -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
     reactor_output_multiplier = 1,
 
-    field_integral = 0
+    _field_integral = 0
 }
 
 function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output_flux_gate)
@@ -50,18 +50,49 @@ function DraconicReactorManager:handle()
         end
 
         -- update output flow
-        self.reactor_state = reactor_info.state
+        self.reactor_state = reactor_info.status
+        print(reactor_info.state)
         self.output_flow = reactor_info.generationRate
         self.temperature = reactor_info.temperature
 
-        self:_handle_io(reactor_info)
+        -- handle reactor states
+        if reactor_info.status == ReactorState.COLD then
+            -- do nothing
+        elseif reactor_info.status == ReactorState.WARMING_UP then
+            self:_handle_warming_up(reactor_info)
+        elseif reactor_info.status == ReactorState.RUNNING then
+            self:_handle_running(reactor_info)
+        elseif reactor_info.status == ReactorState.STOPPING then
+            self:_handle_stopping(reactor_info)
+        elseif reactor_info.status == ReactorState.COOLING then
+            -- todo:
+        end
 
         sleep(0.025)
         ::continue::
     end
 end
 
-function DraconicReactorManager:_handle_io(reactor_info)
+function DraconicReactorManager:_handle_warming_up(reactor_info)
+    -- 9 million RF/t seems to be what the community decided as the standard for input flow during warm up
+    local INPUT_FLOW_RATE = 9000000
+
+    self.input_flux_gate.setSignalLowFlow(INPUT_FLOW_RATE)
+    self.output_flux_gate.setSignalLowFlow(0)
+
+    -- automatically activate the reactor once its ready
+    self.reactor.activateReactor()
+end
+
+function DraconicReactorManager:_handle_running(reactor_info)
+    -- I think the code in this method needs some explanation:
+    -- Why are we doing all these calculations? We try to predict the energy consumption the reactor needs in order to 
+    -- maintain the containment field at our desired field strength. For this we pre-calculate how the reactor behaves
+    -- With our desired temperature and the current state the reactor is in.
+    -- Once we did that we additionally utilize a PI term (not PID) to try to counter rapid changes in the resulting
+    -- input rate variation. This should allow us to survive rapid output rate changes (800k RF/t to 5.5M RF/t) without
+    -- letting the reactor going instantly nuclear.
+
     local MAX_TEMPERATURE = 10000
 
     -- the calculations below are directly taken from the mod sourcecode
@@ -115,11 +146,10 @@ function DraconicReactorManager:_handle_io(reactor_info)
     -- integral term
     local Kp = 0.15
     local Ki = 0.01 * 0.025
-    self.field_integral = math.max(-reactor_info.maxFieldStrength, math.min(reactor_info.maxFieldStrength, self.field_integral + field_strength_error))
-    local field_correction = (Kp * field_strength_error) + (Ki * self.field_integral)
+    self._field_integral = math.max(-reactor_info.maxFieldStrength, math.min(reactor_info.maxFieldStrength, self._field_integral + field_strength_error))
+    local field_correction = (Kp * field_strength_error) + (Ki * self._field_integral)
 
-    local input_flow = math.min(field_correction + field_required_input, reactor_info.maxFieldStrength)
-
+    local input_flow = math.max(0, math.min(field_correction + field_required_input, reactor_info.maxFieldStrength))
 
     -- calculate output flow
     local target_temperature_exponential = -(temperature_rise_resist * conversion_level) - 1000 * conversion_level + temperature_rise_resist
@@ -131,42 +161,19 @@ function DraconicReactorManager:_handle_io(reactor_info)
     local core_saturation_target = 1 - (target_negative_core_saturation/99)
     local saturation_target = core_saturation_target * reactor_info.maxEnergySaturation
     local saturation_error = reactor_info.energySaturation - saturation_target
-    local output_flow = math.min(saturation_error, (reactor_info.maxEnergySaturation / 40)) + reactor_info.generationRate
+    local output_flow = math.max(0, math.min(saturation_error, (reactor_info.maxEnergySaturation / 40)) + reactor_info.generationRate)
 
+
+    -- update flux gates
     self.output_flux_gate.setSignalLowFlow(output_flow)
     self.input_flux_gate.setSignalLowFlow(input_flow)
+end
 
-    -- test
-    local targetTempExpo = -(temperature_rise_resist * conversion_level) - 1000 * conversion_level + temperature_rise_resist
-
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("")
-    print("EXPECTED")
-    print("energySaturation             " .. reactor_info.energySaturation)
-    print("generationRate               " .. reactor_info.generationRate)
-    print("fieldDrainRate               " .. reactor_info.fieldDrainRate)
-    print("")
-    print("RESULT")
-    print("output_flow                  " .. output_flow)
-    print("input_flow                   " .. input_flow)
-    print("field_temp_drain_factor      " .. field_temp_drain_factor)
-    print("")
-    print("INPUT")
-    print("field_strength_error         " .. math.ceil(field_strength_error / reactor_info.maxFieldStrength * 100000) / 100000)
-    print("field_required_input         " .. field_required_input)
-    print("")
-    print("OUTPUT")
-    print("target_negative_core_saturation " .. math.ceil(target_negative_core_saturation * 100000) / 100000)
-    
+function DraconicReactorManager:_handle_stopping(reactor_info)
+    -- during shutdown it's normally not necessary to rapidly adjust to output changes (output is force to 0 RF/t),
+    -- so we can just derive the optimal input flow from the current field drain rate
+    self.output_flux_gate.setSignalLowFlow(0)
+    self.input_flux_gate.setSignalLowFlow(reactor_info.fieldDrainRate / (1 - self.field_strength_goal))
 end
 
 return DraconicReactorManager
