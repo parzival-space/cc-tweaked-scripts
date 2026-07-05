@@ -51,7 +51,6 @@ function DraconicReactorManager:handle()
 
         -- update output flow
         self.reactor_state = reactor_info.status
-        print(reactor_info.state)
         self.output_flow = reactor_info.generationRate
         self.temperature = reactor_info.temperature
 
