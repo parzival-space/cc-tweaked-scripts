@@ -64,7 +64,7 @@ function DraconicReactorManager:handle()
         elseif reactor_info.status == ReactorState.STOPPING then
             self:_handle_stopping(reactor_info)
         elseif reactor_info.status == ReactorState.COOLING then
-            -- todo:
+            self:_handle_cooling(reactor_info)
         end
 
         sleep(0.025)
@@ -81,6 +81,9 @@ function DraconicReactorManager:_handle_warming_up(reactor_info)
 
     -- automatically activate the reactor once its ready
     self.reactor.activateReactor()
+    
+    -- reset _field_integral due to state change
+    self._field_integral = 0
 end
 
 function DraconicReactorManager:_handle_running(reactor_info)
@@ -92,10 +95,10 @@ function DraconicReactorManager:_handle_running(reactor_info)
     -- input rate variation. This should allow us to survive rapid output rate changes (800k RF/t to 5.5M RF/t) without
     -- letting the reactor going instantly nuclear.
 
-    local MAX_TEMPERATURE = 10000
-
     -- the calculations below are directly taken from the mod sourcecode
     -- START MOD_CALCULATIONS
+    local MAX_TEMPERATURE = 10000
+
     local core_saturation = reactor_info.energySaturation / reactor_info.maxEnergySaturation    -- reactor saturation percent. range: 0.0 - 1.0
     local negative_saturation_percentage = (1 - core_saturation) * 99                           -- negative reactor saturation. range: 0 - 99
 
@@ -169,10 +172,19 @@ function DraconicReactorManager:_handle_running(reactor_info)
 end
 
 function DraconicReactorManager:_handle_stopping(reactor_info)
+    -- reset _field_integral due to state change
+    self._field_integral = 0
+
     -- during shutdown it's normally not necessary to rapidly adjust to output changes (output is force to 0 RF/t),
     -- so we can just derive the optimal input flow from the current field drain rate
     self.output_flux_gate.setSignalLowFlow(0)
     self.input_flux_gate.setSignalLowFlow(reactor_info.fieldDrainRate / (1 - self.field_strength_goal))
+end
+
+function DraconicReactorManager:_handle_cooling(reactor_info)
+    -- we can just cut the input power here, the core will not consume any energy anyways
+    self.output_flux_gate.setSignalLowFlow(0)
+    self.input_flux_gate.setSignalLowFlow(0)
 end
 
 return DraconicReactorManager
