@@ -16,13 +16,15 @@ local DraconicReactorManager = {
     output_flow = 0,
 
     field_strength = 0,
-    field_strength_goal = 0.30,
+    field_strength_goal = 0.35,
 
     temperature = 0,
     temperature_goal = 7500,
 
     -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
     reactor_output_multiplier = 1,
+
+    field_integral = 0
 }
 
 function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output_flux_gate)
@@ -63,6 +65,7 @@ function DraconicReactorManager:_handle_io(reactor_info)
     local MAX_TEMPERATURE = 10000
 
     -- the calculations below are directly taken from the mod sourcecode
+    -- START MOD_CALCULATIONS
     local core_saturation = reactor_info.energySaturation / reactor_info.maxEnergySaturation    -- reactor saturation percent. range: 0.0 - 1.0
     local negative_saturation_percentage = (1 - core_saturation) * 99                           -- negative reactor saturation. range: 0 - 99
 
@@ -97,19 +100,25 @@ function DraconicReactorManager:_handle_io(reactor_info)
     end
 
     local field_drain = math.ceil(math.min(field_temp_drain_factor * math.max(0.01, (1 - core_saturation)) * (energy_base_max_RFt / 10.923556), 2147000000))
-    local field_percent = reactor_info.fieldStrength / reactor_info.maxFieldStrength
-    local field_input_rate = field_drain / (1 - field_percent)
-
     local field_strength = reactor_info.fieldStrength - math.min(field_drain, reactor_info.fieldStrength) -- unused, just for clarity
 
     -- fuel calculation
     local fuel_use_rate = field_temp_drain_factor * (1 - core_saturation) * (0.001 * self.reactor_output_multiplier * 5) -- unused, just for clarity
 
+    -- END MOD_CALCULATIONS
+
 
     -- calculate input flow
     local field_strength_error = (reactor_info.maxFieldStrength * self.field_strength_goal) - field_strength
     local field_required_input = math.min((reactor_info.maxFieldStrength * field_drain) / (reactor_info.maxFieldStrength - field_strength), reactor_info.maxFieldStrength - field_strength)
-    local input_flow = math.min(field_strength_error + field_required_input, reactor_info.maxFieldStrength)
+
+    -- integral term
+    local Kp = 0.15
+    local Ki = 0.01 * 0.025
+    self.field_integral = math.max(-reactor_info.maxFieldStrength, math.min(reactor_info.maxFieldStrength, self.field_integral + field_strength_error))
+    local field_correction = (Kp * field_strength_error) + (Ki * self.field_integral)
+
+    local input_flow = math.min(field_correction + field_required_input, reactor_info.maxFieldStrength)
 
 
     -- calculate output flow
@@ -152,7 +161,7 @@ function DraconicReactorManager:_handle_io(reactor_info)
     print("field_temp_drain_factor      " .. field_temp_drain_factor)
     print("")
     print("INPUT")
-    print("field_strength_error         " .. field_strength_error)
+    print("field_strength_error         " .. math.ceil(field_strength_error / reactor_info.maxFieldStrength * 100000) / 100000)
     print("field_required_input         " .. field_required_input)
     print("")
     print("OUTPUT")
