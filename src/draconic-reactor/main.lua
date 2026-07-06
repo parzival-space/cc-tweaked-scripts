@@ -23,10 +23,5 @@ parallel.waitForAll(
     function()
         reactor_manager:handle()
     end,
-    function()
-        while true do
-            -- print("STATE = " .. reactor_manager.reactor_state)
-            sleep(0.1)
-        end
-    end
+    -- here was once a handle for monitors, now it is not
 )

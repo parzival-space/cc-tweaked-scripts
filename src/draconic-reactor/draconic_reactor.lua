@@ -7,7 +7,7 @@ local ReactorState = {
     BEYOND_HOPE = "beyond_hope",
 }
 
-local DraconicReactorManager = {
+local DraconicReactor = {
     reactor = {},
     input_flux_gate = {},
     output_flux_gate = {},
