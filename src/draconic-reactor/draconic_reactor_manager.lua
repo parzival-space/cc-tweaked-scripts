@@ -17,12 +17,13 @@ local DraconicReactorManager = {
 
     field_strength = 0,
     field_strength_goal = 0.35,
+    field_strength_minimum = 0.10, -- minimum required field strength before triggering meltdown protection
 
     temperature = 0,
     temperature_goal = 7500,
 
     fuel_conversion = 0,
-    fuel_conversion_limit = 0.85, -- once fuel conversion reaches this percentage limit, the reactor will auto shutdown
+    fuel_conversion_max = 0.85, -- maximum allowed fuel conversion before triggering meltdown protection
 
     -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
     reactor_output_multiplier = 1,
@@ -170,7 +171,12 @@ function DraconicReactorManager:_handle_running(reactor_info)
     local output_flow = math.max(0, math.min(saturation_error, (reactor_info.maxEnergySaturation / 40)) + reactor_info.generationRate)
 
     -- automatically shutdown when fuel conversion reaches limit
-    if (reactor_info.fuelConversion / reactor_info.maxFuelConversion) >= self.fuel_conversion_limit then
+    if (reactor_info.fuelConversion / reactor_info.maxFuelConversion) >= self.fuel_conversion_max then
+        self.reactor.stopReactor()
+    end
+
+    -- automatically shutdown when containment field drops below accepted minimum
+    if (reactor_info.fieldStrength / reactor_info.maxFieldStrength) < self.field_strength_minimum then
         self.reactor.stopReactor()
     end
 
