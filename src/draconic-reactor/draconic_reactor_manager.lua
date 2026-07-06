@@ -27,9 +27,9 @@ local DraconicReactorManager = {
     _field_integral = 0
 }
 
-function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output_flux_gate)
+function DraconicReactorManager:new(instance, draconic_reactor, input_flux_gate, output_flux_gate)
     -- class constructor
-    o = o or {}
+    instance = instance or {}
     setmetatable(o, self)
     self.__index = self
 
@@ -37,7 +37,7 @@ function DraconicReactorManager:new(o, draconic_reactor, input_flux_gate, output
     self.input_flux_gate = input_flux_gate or error("input_flux_gate not set")
     self.output_flux_gate = output_flux_gate or error("output_flux_gate not set")
 
-    return o
+    return instance
 end
 
 function DraconicReactorManager:handle()
@@ -81,7 +81,7 @@ function DraconicReactorManager:_handle_warming_up(reactor_info)
 
     -- automatically activate the reactor once its ready
     self.reactor.activateReactor()
-    
+
     -- reset _field_integral due to state change
     self._field_integral = 0
 end
