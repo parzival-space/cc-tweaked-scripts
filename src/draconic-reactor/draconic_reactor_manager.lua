@@ -4,6 +4,7 @@ local ReactorState = {
     RUNNING = "running",
     STOPPING = "stopping",
     COOLING = "cooling",
+    BEYOND_HOPE = "beyond_hope",
 }
 
 local DraconicReactorManager = {
@@ -70,6 +71,8 @@ function DraconicReactorManager:handle()
             self:_handle_stopping(reactor_info)
         elseif reactor_info.status == ReactorState.COOLING then
             self:_handle_cooling(reactor_info)
+        elseif reactor_info.status == ReactorState.BEYOND_HOPE then
+            self:_handle_beyond_hope(reactor_info)
         end
 
         sleep(0.025)
@@ -199,6 +202,11 @@ function DraconicReactorManager:_handle_cooling(reactor_info)
     -- we can just cut the input power here, the core will not consume any energy anyways
     self.output_flux_gate.setSignalLowFlow(0)
     self.input_flux_gate.setSignalLowFlow(0)
+end
+
+function DraconicReactorManager:_handle_beyond_hope(reactor_info)
+    -- this is where something like a auto clicker from just dire things could be use to auto "contain" the reactor
+    -- at this point the core is literally "beyond hope"
 end
 
 return DraconicReactorManager
