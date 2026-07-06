@@ -21,6 +21,9 @@ local DraconicReactorManager = {
     temperature = 0,
     temperature_goal = 7500,
 
+    fuel_conversion = 0,
+    fuel_conversion_limit = 0.85, -- once fuel conversion reaches this percentage limit, the reactor will auto shutdown
+
     -- Check "Mod Options > Draconic Evolution > Tweaks > reactorOutputMultiplier" to find what it is.
     reactor_output_multiplier = 1,
 
@@ -30,7 +33,7 @@ local DraconicReactorManager = {
 function DraconicReactorManager:new(instance, draconic_reactor, input_flux_gate, output_flux_gate)
     -- class constructor
     instance = instance or {}
-    setmetatable(o, self)
+    setmetatable(instance, self)
     self.__index = self
 
     self.reactor = draconic_reactor or error("draconic_reactor not set")
@@ -53,6 +56,7 @@ function DraconicReactorManager:handle()
         self.reactor_state = reactor_info.status
         self.output_flow = reactor_info.generationRate
         self.temperature = reactor_info.temperature
+        self.fuel_conversion = reactor_info.fuelConversion / reactor_info.maxFuelConversion
 
         -- handle reactor states
         if reactor_info.status == ReactorState.COLD then
@@ -165,6 +169,10 @@ function DraconicReactorManager:_handle_running(reactor_info)
     local saturation_error = reactor_info.energySaturation - saturation_target
     local output_flow = math.max(0, math.min(saturation_error, (reactor_info.maxEnergySaturation / 40)) + reactor_info.generationRate)
 
+    -- automatically shutdown when fuel conversion reaches limit
+    if (reactor_info.fuelConversion / reactor_info.maxFuelConversion) >= self.fuel_conversion_limit then
+        self.reactor.stopReactor()
+    end
 
     -- update flux gates
     self.output_flux_gate.setSignalLowFlow(output_flow)
