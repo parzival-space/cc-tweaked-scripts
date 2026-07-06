@@ -19,9 +19,16 @@ end) or error("Reactor output Flux Gate not found!")
 -- init managers
 local reactor_manager = DraconicReactor:new(nil, draconic_reactor, input_flux_gate, output_flux_gate)
 
+-- configuration
+reactor_manager.field_strength_goal = 0.35
+reactor_manager.temperature_goal = 7500
+reactor_manager.fuel_conversion_max = 0.85
+reactor_manager.reactor_output_multiplier = 1
+
+-- run handler
 parallel.waitForAll(
     function()
         reactor_manager:handle()
-    end,
+    end
     -- here was once a handle for monitors, now it is not
 )
