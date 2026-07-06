@@ -1,4 +1,4 @@
-local DraconicReactorManager = require("draconic_reactor_manager")
+local DraconicReactor = require("draconic_reactor")
 local PeripheralStore = require("peripheral_store")
 
 
@@ -17,7 +17,7 @@ local output_flux_gate = peripheral_store:load_or_find("output_flux_gate", "flow
 end) or error("Reactor output Flux Gate not found!")
 
 -- init managers
-local reactor_manager = DraconicReactorManager:new(nil, draconic_reactor, input_flux_gate, output_flux_gate)
+local reactor_manager = DraconicReactor:new(nil, draconic_reactor, input_flux_gate, output_flux_gate)
 
 parallel.waitForAll(
     function()

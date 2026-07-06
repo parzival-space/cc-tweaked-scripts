@@ -32,7 +32,7 @@ local DraconicReactorManager = {
     _field_integral = 0
 }
 
-function DraconicReactorManager:new(instance, draconic_reactor, input_flux_gate, output_flux_gate)
+function DraconicReactor:new(instance, draconic_reactor, input_flux_gate, output_flux_gate)
     -- class constructor
     instance = instance or {}
     setmetatable(instance, self)
@@ -45,7 +45,7 @@ function DraconicReactorManager:new(instance, draconic_reactor, input_flux_gate,
     return instance
 end
 
-function DraconicReactorManager:handle()
+function DraconicReactor:handle()
     while true do
         local reactor_info = self.reactor.getReactorInfo()
         if not reactor_info then
@@ -81,7 +81,7 @@ function DraconicReactorManager:handle()
     end
 end
 
-function DraconicReactorManager:_handle_warming_up(reactor_info)
+function DraconicReactor:_handle_warming_up(reactor_info)
     -- 9 million RF/t seems to be what the community decided as the standard for input flow during warm up
     local INPUT_FLOW_RATE = 9000000
 
@@ -95,7 +95,7 @@ function DraconicReactorManager:_handle_warming_up(reactor_info)
     self._field_integral = 0
 end
 
-function DraconicReactorManager:_handle_running(reactor_info)
+function DraconicReactor:_handle_running(reactor_info)
     -- I think the code in this method needs some explanation:
     -- Why are we doing all these calculations? We try to predict the energy consumption the reactor needs in order to 
     -- maintain the containment field at our desired field strength. For this we pre-calculate how the reactor behaves
@@ -189,7 +189,7 @@ function DraconicReactorManager:_handle_running(reactor_info)
     self.input_flux_gate.setSignalLowFlow(input_flow)
 end
 
-function DraconicReactorManager:_handle_stopping(reactor_info)
+function DraconicReactor:_handle_stopping(reactor_info)
     -- reset _field_integral due to state change
     self._field_integral = 0
 
@@ -199,10 +199,10 @@ function DraconicReactorManager:_handle_stopping(reactor_info)
     self.input_flux_gate.setSignalLowFlow(reactor_info.fieldDrainRate / (1 - self.field_strength_goal))
 end
 
-function DraconicReactorManager:_handle_cooling(reactor_info)
+function DraconicReactor:_handle_cooling(reactor_info)
     -- we can just cut the input power here, the core will not consume any energy anyways
     self.output_flux_gate.setSignalLowFlow(0)
     self.input_flux_gate.setSignalLowFlow(0)
 end
 
-return DraconicReactorManager
+return DraconicReactor
